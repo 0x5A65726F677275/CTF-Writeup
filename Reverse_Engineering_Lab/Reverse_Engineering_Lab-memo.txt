@@ -1,3 +1,7 @@
+$ ./lab1 
+Enter password: q
+Wrong!
+
 0x35 
 0x75 
 0x70
