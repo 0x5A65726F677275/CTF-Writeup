@@ -1,0 +1,59 @@
+0x35 
+0x75 
+0x70
+0x33
+0x72
+0x5f
+0x44
+0x75
+0x50
+0x33
+0x72
+0x5f
+0x75
+0x5f
+0x23
+0x5f
+0x31
+
+break *main+108
+
+   0x804850f <main+91>     xor    eax, edx
+   0x8048511 <main+93>     mov    byte ptr [esp + 0x27], al
+   0x8048515 <main+97>     lea    eax, [esp + 0x28]
+   0x8048519 <main+101>    add    eax, dword ptr [esp + 0x20]
+   0x804851d <main+105>    movzx  eax, byte ptr [eax]
+ ► 0x8048520 <main+108>    cmp    al, byte ptr [esp + 0x27]       0x31 - 0x31     EFLAGS => 0x246 [ cf PF af ZF sf IF df of ]
+   0x8048524 <main+112>  ✔ je     main+133                    <main+133>
+    ↓
+   0x8048539 <main+133>    add    dword ptr [esp + 0x20], 1              [0xffffcca0] <= 17 (0x10 + 0x1)
+   0x804853e <main+138>    mov    ebx, dword ptr [esp + 0x20]            EBX, [0xffffcca0] => 0x11
+   0x8048542 <main+142>    mov    eax, storedpass                        EAX => 0x804a020 (storedpass) ◂— '5tr0vZBrX:xTyR-P!'
+   0x8048547 <main+147>    mov    dword ptr [esp + 0x1c], 0xffffffff     [0xffffcc9c] <= 0xffffffff
+─────────────────────────────────────────────────────────────────────[ STACK ]──────────────────────────────────────────────────────────────────────
+00:0000│ esp 0xffffcc80 —▸ 0x8048681 ◂— and eax, 0x72570073 /* '%s' */
+01:0004│-044 0xffffcc84 —▸ 0xffffcca8 ◂— '5up3r_DuP3r_u_#_1'
+02:0008│-040 0xffffcc88 —▸ 0xf7d9f4be ◂— '_dl_audit_preinit'
+03:000c│-03c 0xffffcc8c —▸ 0xf7fad054 (_dl_audit_preinit@got.plt) —▸ 0xf7fddda0 (_dl_audit_preinit) ◂— endbr32
+04:0010│-038 0xffffcc90 —▸ 0xf7fbe4a0 —▸ 0xf7d87000 ◂— 0x464c457f
+05:0014│-034 0xffffcc94 —▸ 0xf7fd6f20 ◂— mov edi, eax
+06:0018│-030 0xffffcc98 —▸ 0xf7d9f4be ◂— '_dl_audit_preinit'
+07:001c│-02c 0xffffcc9c ◂— 0xffffffff
+───────────────────────────────────────────────────────────────────[ BACKTRACE ]────────────────────────────────────────────────────────────────────
+ ► 0 0x8048520 main+108
+   1 0xf7da8519 None
+   2 0xf7da85f3 __libc_start_main+147
+   3 0x8048421 _start+33
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+pwndbg> 
+Continuing.
+
+Success!! Too easy.
+
+$ ./lab1
+Enter password: 5up3r_DuP3r_u_#_1
+
+Success!! Too easy.
+5up3r_DuP3r_u_#_1
+
+
