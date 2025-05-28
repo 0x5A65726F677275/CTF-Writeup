@@ -1,0 +1,18 @@
+# Makefile to build 
+
+# Compiler and flags
+CC = gcc
+CFLAGS = -Wall
+
+# Output binary
+TARGET = red_finder
+
+# Default rule to compile the program
+all: $(TARGET)
+
+$(TARGET): red_finder.c
+	$(CC) $(CFLAGS) red_finder.c -o $(TARGET)
+
+# Clean up the generated files
+clean:
+	rm -f $(TARGET)
