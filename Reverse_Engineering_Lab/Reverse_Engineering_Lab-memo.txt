@@ -61,3 +61,37 @@ Success!! Too easy.
 5up3r_DuP3r_u_#_1
 
 
+   0x80485dc    sub    eax, 1                         EAX => 16 (0x11 - 0x1)
+ ► 0x80485df    cmp    ebx, eax                       0x0 - 0x10     EFLAGS => 0x287 [ CF PF af zf SF IF df of ]
+ 
+
+b *0x804859a
+
+0x6a
+0x75
+0x35
+0x54
+0x5f
+0x77
+0x34
+0x52
+0x6d
+0x31
+0x6e
+0x67
+0x5f
+0x55
+0x50
+0x21
+
+0x6a7535545f7734526d316e675f555021
+ju5T_w4Rm1ng_UP!
+
+ ► 0x80485e8    mov    dword ptr [esp], 0x804870b     [0xffffccc0] <= 0x804870b ◂— or
+ dl, byte ptr [ebx + 0x75] /* '\nSuccess!! Too easy.' */
+
+$ ./lab2 
+Enter password: ju5T_w4Rm1ng_UP!
+
+Success!! Too easy.
+ju5T_w4Rm1ng_UP!
