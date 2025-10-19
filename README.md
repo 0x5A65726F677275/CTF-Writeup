@@ -1,2 +1,4 @@
 # Modern-Binary-Exploitation
-A private research repository for cutting-edge binary exploitation, reverse engineering, and vulnerability research.
+An open research repository dedicated to advanced binary exploitation, reverse engineering, and vulnerability analysis.
+Publishes technical write-ups, exploit proofs of concept, and secure coding insights for the cybersecurity community.
+Includes custom-built tools and documentation supporting ethical hacking and secure software development practices.
